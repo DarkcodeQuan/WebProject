@@ -21,7 +21,13 @@ const baseRoutes = require("./routes/base.routes");
 const adminRoutes = require("./routes/admin.routes");
 const cartRoutes = require("./routes/cart.routes");
 const ordersRoutes = require("./routes/orders.routes");
-const port = process.env.PORT | 3000;
+
+const port = process.env.port | 3000;
+
+const httpPort = process.env.HTTP_PORT || 3001;
+
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 
@@ -66,3 +72,27 @@ db.connectToDatabase()
     console.log("Failed to connect to the database!");
     console.log(error);
   });
+
+const serverOptions = {
+  key: fs.readFileSync('server.key'),
+  cert: fs.readFileSync('server.crt'),
+};
+
+const server = https.createServer(serverOptions, app);
+
+server.listen(httpPort, () => {
+    console.log(`Server is running on https://localhost:${httpPort}`);
+});
+//http to https
+const http = express();
+http.get('*', (req, res) => {
+    res.redirect('https://' + req.headers.host + req.url);
+});
+http.listen(80, () => {
+    console.log(`HTTP server is running on http://localhost:80`);
+});
+//security
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  next();
+});
