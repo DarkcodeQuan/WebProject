@@ -23,8 +23,7 @@ const cartRoutes = require("./routes/cart.routes");
 const ordersRoutes = require("./routes/orders.routes");
 
 const port = process.env.port | 3000;
-
-const httpPort = process.env.HTTP_PORT || 3001;
+const httpsPort = process.env.HTTP_PORT || 3001;
 
 const https = require('https');
 const fs = require('fs');
@@ -78,21 +77,26 @@ const serverOptions = {
   cert: fs.readFileSync('server.crt'),
 };
 
-const server = https.createServer(serverOptions, app);
-
-server.listen(httpPort, () => {
-    console.log(`Server is running on https://localhost:${httpPort}`);
-});
 //http to https
 const http = express();
 http.get('*', (req, res) => {
-    res.redirect('https://' + req.headers.host + req.url);
+    res.redirect(`https://${req.headers.host}${req.url}`);
 });
 http.listen(80, () => {
     console.log(`HTTP server is running on http://localhost:80`);
 });
+
+// Create https server
+const server = https.createServer(serverOptions, app);
+
+server.listen(httpsPort, () => {
+    console.log(`Server is running on https://localhost:${httpsPort}`);
+});
+
 //security
 app.use((req, res, next) => {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('Content-Security-Policy', "default-src 'self'");
+  res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
